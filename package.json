@@ -1,9 +1,17 @@
 {
-  "name": "catbox-uploader",
+  "name": "catbox-upload",
   "version": "1.0.0",
+  "description": "Upload file ke Catbox.moe via API",
+  "main": "api/upload.js",
+  "scripts": {
+    "start": "node api/upload.js",
+    "dev": "node api/upload.js"
+  },
   "dependencies": {
-    "axios": "^1.7.2",
+    "axios": "^1.6.0",
     "form-data": "^4.0.0",
-    "formidable": "^3.5.1"
-  }
+    "formidable": "^2.1.2"
+  },
+  "author": "RX7",
+  "license": "MIT"
 }
