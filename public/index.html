@@ -87,18 +87,9 @@
             user-select: all;
             font-family: monospace;
         }
-        .result .value.url-value {
-            color: #00ff88;
-            font-size: 14px;
-        }
-        .result .value.uploader-value {
-            color: #ffcc00;
-            font-size: 13px;
-        }
-        .result .value.size-value {
-            color: #66ccff;
-            font-size: 13px;
-        }
+        .result .value.url-value { color: #00ff88; font-size: 14px; }
+        .result .value.uploader-value { color: #ffcc00; font-size: 13px; }
+        .result .value.size-value { color: #66ccff; font-size: 13px; }
         .copy-btn {
             background: rgba(255,255,255,0.1);
             border: 1px solid #ff6b8a;
@@ -134,17 +125,17 @@
             text-align: left;
         }
         .error-msg.show { display: block; }
+        .error-msg .detail {
+            color: #ff8888;
+            font-size: 12px;
+            margin-top: 5px;
+            padding: 5px 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            font-family: monospace;
+        }
         .footer { margin-top: 20px; font-size: 12px; color: #666; }
         .footer span { color: #ff6b8a; }
-        .badge {
-            display: inline-block;
-            background: rgba(255,100,150,0.15);
-            padding: 2px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            color: #ff6b8a;
-            margin-top: 5px;
-        }
         @media (max-width: 500px) {
             .container { padding: 25px 18px; }
             h1 { font-size: 22px; }
@@ -174,7 +165,10 @@
         <p style="margin-top:8px;">Uploading...</p>
     </div>
 
-    <div class="error-msg" id="errorMsg"></div>
+    <div class="error-msg" id="errorMsg">
+        <div id="errorText"></div>
+        <div class="detail" id="errorDetail"></div>
+    </div>
 
     <div class="result" id="result">
         <div style="text-align:center;margin-bottom:12px;">
@@ -210,6 +204,8 @@
     const resultSize = document.getElementById('resultSize');
     const copyBtn = document.getElementById('copyBtn');
     const errorMsg = document.getElementById('errorMsg');
+    const errorText = document.getElementById('errorText');
+    const errorDetail = document.getElementById('errorDetail');
 
     let selectedFile = null;
 
@@ -274,11 +270,9 @@
             console.log('📥 Response:', data);
 
             if (data.success && data.url) {
-                // TAMPILIN URL DENGAN FORMAT JELAS
                 resultUrl.textContent = data.url;
                 resultUploader.textContent = data.uploader || 'Unknown';
                 
-                // Format size
                 let sizeText = '';
                 if (data.size < 1024) {
                     sizeText = data.size + ' B';
@@ -292,15 +286,14 @@
                 result.classList.add('show');
                 console.log('✅ URL:', data.url);
             } else {
-                errorMsg.textContent = '❌ Upload gagal: ' + (data.error || 'Unknown error');
+                errorText.textContent = '❌ ' + (data.error || 'Upload gagal');
+                errorDetail.textContent = data.detail || data.message || 'Tidak ada detail error. Coba file lain.';
                 errorMsg.classList.add('show');
-                if (data.results) {
-                    console.log('📊 Results:', data.results);
-                }
             }
         } catch (err) {
             console.error('❌ Error:', err);
-            errorMsg.textContent = '❌ Error: ' + err.message;
+            errorText.textContent = '❌ Error: ' + err.message;
+            errorDetail.textContent = 'Cek console untuk detail lebih lanjut.';
             errorMsg.classList.add('show');
         } finally {
             loading.classList.remove('show');
@@ -317,7 +310,6 @@
                     copyBtn.textContent = '📋 Copy URL';
                 }, 2000);
             }).catch(() => {
-                // FALLBACK
                 const range = document.createRange();
                 range.selectNode(resultUrl);
                 window.getSelection().removeAllRanges();
@@ -333,7 +325,7 @@
         }
     });
 
-    console.log('🔥 TOP4TOP Uploader!');
+    console.log('🔥 TOP4TOP Uploader Loaded!');
     console.log('😈 JANGAN LUPA MAKAN EMPING!');
 </script>
 
