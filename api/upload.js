@@ -23,15 +23,15 @@ module.exports = async function handler(req, res) {
             keepExtensions: true
         });
 
-        const { files } = await new Promise((resolve, reject) => {
+        const { fields, files } = await new Promise((resolve, reject) => {
             form.parse(req, (err, fields, files) => {
                 if (err) reject(err);
                 else resolve({ fields, files });
             });
         });
 
-        const file = Array.isArray(files.file)
-            ? files.file[0]
+        const file = Array.isArray(files.file) 
+            ? files.file[0] 
             : files.file;
 
         if (!file) {
@@ -42,7 +42,6 @@ module.exports = async function handler(req, res) {
         }
 
         const catboxForm = new FormData();
-
         catboxForm.append("reqtype", "fileupload");
         catboxForm.append(
             "fileToUpload",
@@ -72,3 +71,4 @@ module.exports = async function handler(req, res) {
             detail: err.response?.data || null
         });
     }
+};
