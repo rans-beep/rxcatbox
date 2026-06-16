@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Catbox Uploader 💀</title>
+
+<style>
+body{
+    font-family:Arial;
+    background:#111827;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.card{
+    width:350px;
+    padding:30px;
+    border-radius:20px;
+    background:#1f2937;
+    text-align:center;
+}
+
+input,button{
+    width:100%;
+    padding:12px;
+    margin-top:15px;
+}
+
+button{
+    cursor:pointer;
+}
+
+#result{
+    margin-top:20px;
+    word-break:break-all;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>💀 Catbox Uploader</h2>
+
+    <input type="file" id="file">
+
+    <button onclick="upload()">
+        Upload
+    </button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+async function upload(){
+    const file=document.getElementById("file").files[0];
+    const result=document.getElementById("result");
+
+    if(!file){
+        result.innerHTML="Pilih file dulu.";
+        return;
+    }
+
+    const form=new FormData();
+    form.append("file",file);
+
+    result.innerHTML="Mengunggah...";
+
+    try{
+        const res=await fetch("/api/upload",{
+            method:"POST",
+            body:form
+        });
+
+        const data=await res.json();
+
+        if(data.success){
+            result.innerHTML=
+            `<a href="${data.url}" target="_blank">${data.url}</a>`;
+        }else{
+            result.innerHTML=data.error;
+        }
+
+    }catch(err){
+        result.innerHTML=err.message;
+    }
+}
+</script>
+
+</body>
+</html>
