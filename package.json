@@ -1,7 +1,7 @@
 {
-  "name": "catbox-upload",
+  "name": "top4top-uploader",
   "version": "1.0.0",
-  "description": "Upload file ke Catbox.moe via API",
+  "description": "Upload file ke 4 uploader sekaligus (File.io, 0x0.st, Pomf, Upload.ee)",
   "main": "api/upload.js",
   "scripts": {
     "start": "node api/upload.js",
