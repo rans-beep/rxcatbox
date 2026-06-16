@@ -33,18 +33,31 @@ module.exports = async function handler(req, res) {
 
         const file = Array.isArray(files.file) ? files.file[0] : files.file;
         if (!file) {
-            return res.status(400).json({ success: false, error: "File tidak ditemukan." });
+            return res.status(400).json({ 
+                success: false, 
+                error: "File tidak ditemukan.",
+                detail: "Pastikan file sudah dipilih dan coba lagi."
+            });
         }
 
+        // CEK FILE SIZE
         const fileBuffer = fs.readFileSync(file.filepath);
         const filename = file.originalFilename || "upload";
         const fileSize = fileBuffer.length;
         
+        if (fileSize === 0) {
+            return res.status(400).json({
+                success: false,
+                error: "File kosong!",
+                detail: "File tidak boleh 0 byte."
+            });
+        }
+
         console.log(`📤 File: ${filename} (${fileSize} bytes)`);
 
         let url = null;
         let uploader = null;
-        let lastError = null;
+        let errors = [];
 
         // ========== TOP 1: FILE.IO ==========
         try {
@@ -55,17 +68,20 @@ module.exports = async function handler(req, res) {
                 headers: { ...f.getHeaders(), "User-Agent": "Mozilla/5.0" },
                 timeout: 30000
             });
-            console.log("📥 File.io response:", response.status, response.data);
+            
             if (response.data?.link) {
                 url = response.data.link;
                 uploader = "File.io";
                 console.log("✅ File.io berhasil!");
             } else {
-                console.log("⚠️ File.io gagal: no link");
+                const msg = response.data?.message || "No link returned";
+                errors.push(`File.io: ${msg}`);
+                console.log("⚠️ File.io gagal:", msg);
             }
         } catch (e) {
-            console.log("❌ File.io error:", e.message);
-            lastError = e.message;
+            const msg = e.response?.data?.message || e.message || "Unknown error";
+            errors.push(`File.io: ${msg}`);
+            console.log("❌ File.io error:", msg);
         }
 
         // ========== TOP 2: 0X0.ST ==========
@@ -78,15 +94,20 @@ module.exports = async function handler(req, res) {
                     headers: { ...f.getHeaders(), "User-Agent": "Mozilla/5.0" },
                     timeout: 30000
                 });
-                console.log("📥 0x0.st response:", response.status, response.data?.slice(0, 100));
-                if (response.data && response.data.trim()) {
+                
+                if (response.data && response.data.trim() && !response.data.includes("error")) {
                     url = response.data.trim();
                     uploader = "0x0.st";
                     console.log("✅ 0x0.st berhasil!");
+                } else {
+                    const msg = response.data || "No response";
+                    errors.push(`0x0.st: ${msg.slice(0, 100)}`);
+                    console.log("⚠️ 0x0.st gagal:", msg.slice(0, 100));
                 }
             } catch (e) {
-                console.log("❌ 0x0.st error:", e.message);
-                if (!lastError) lastError = e.message;
+                const msg = e.message || "Unknown error";
+                errors.push(`0x0.st: ${msg}`);
+                console.log("❌ 0x0.st error:", msg);
             }
         }
 
@@ -100,15 +121,20 @@ module.exports = async function handler(req, res) {
                     headers: { ...f.getHeaders(), "User-Agent": "Mozilla/5.0" },
                     timeout: 30000
                 });
-                console.log("📥 Pomf response:", response.status, response.data);
+                
                 if (response.data?.files?.[0]?.url) {
                     url = "https://pomf.lain.la/" + response.data.files[0].url;
                     uploader = "Pomf.lain.la";
                     console.log("✅ Pomf berhasil!");
+                } else {
+                    const msg = response.data?.message || "No file url";
+                    errors.push(`Pomf: ${msg}`);
+                    console.log("⚠️ Pomf gagal:", msg);
                 }
             } catch (e) {
-                console.log("❌ Pomf error:", e.message);
-                if (!lastError) lastError = e.message;
+                const msg = e.message || "Unknown error";
+                errors.push(`Pomf: ${msg}`);
+                console.log("❌ Pomf error:", msg);
             }
         }
 
@@ -123,24 +149,30 @@ module.exports = async function handler(req, res) {
                     headers: { ...f.getHeaders(), "User-Agent": "Mozilla/5.0" },
                     timeout: 30000
                 });
-                console.log("📥 Upload.ee response:", response.status);
+                
                 const match = response.data?.match(/https:\/\/upload\.ee\/files\/[^"']+/);
                 if (match) {
                     url = match[0];
                     uploader = "Upload.ee";
                     console.log("✅ Upload.ee berhasil!");
+                } else {
+                    errors.push(`Upload.ee: No link found in response`);
+                    console.log("⚠️ Upload.ee gagal: No link found");
                 }
             } catch (e) {
-                console.log("❌ Upload.ee error:", e.message);
-                if (!lastError) lastError = e.message;
+                const msg = e.message || "Unknown error";
+                errors.push(`Upload.ee: ${msg}`);
+                console.log("❌ Upload.ee error:", msg);
             }
         }
 
+        // ========== HASIL ==========
         if (!url) {
             return res.status(400).json({
                 success: false,
                 error: "Semua uploader gagal.",
-                detail: lastError || "Unknown error"
+                detail: errors.join(" | "),
+                errors: errors
             });
         }
 
@@ -156,7 +188,8 @@ module.exports = async function handler(req, res) {
         console.error("❌ Handler error:", err.message, err.stack);
         return res.status(500).json({
             success: false,
-            error: err.message,
+            error: "Internal server error",
+            detail: err.message,
             stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
     }
