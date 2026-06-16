@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TOP4TOP Uploader</title>
+    <title>RX7 Tourl</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -76,8 +76,6 @@
         .result.show { display: block; }
         .result .label { color: #888; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
         .result .value {
-            color: #ff6b8a;
-            font-size: 15px;
             padding: 10px 12px;
             background: rgba(0,0,0,0.3);
             border-radius: 8px;
@@ -118,7 +116,7 @@
             color: #ff4444;
             font-size: 13px;
             margin-top: 10px;
-            padding: 10px;
+            padding: 12px;
             background: rgba(255,0,0,0.1);
             border-radius: 10px;
             display: none;
@@ -129,10 +127,13 @@
             color: #ff8888;
             font-size: 12px;
             margin-top: 5px;
-            padding: 5px 8px;
+            padding: 8px 10px;
             background: rgba(0,0,0,0.2);
             border-radius: 5px;
             font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
         }
         .footer { margin-top: 20px; font-size: 12px; color: #666; }
         .footer span { color: #ff6b8a; }
@@ -288,6 +289,9 @@
             } else {
                 errorText.textContent = '❌ ' + (data.error || 'Upload gagal');
                 errorDetail.textContent = data.detail || data.message || 'Tidak ada detail error. Coba file lain.';
+                if (data.errors && data.errors.length > 0) {
+                    errorDetail.textContent = data.errors.join('\n');
+                }
                 errorMsg.classList.add('show');
             }
         } catch (err) {
