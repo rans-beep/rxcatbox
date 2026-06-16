@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TOP4TOP Uploader</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
@@ -24,7 +20,7 @@
             backdrop-filter: blur(20px);
             border-radius: 30px;
             padding: 40px 50px;
-            max-width: 520px;
+            max-width: 550px;
             width: 100%;
             border: 2px solid rgba(255,100,150,0.3);
             box-shadow: 0 0 80px rgba(255,50,100,0.2);
@@ -70,15 +66,39 @@
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .result {
             margin-top: 18px;
-            padding: 15px;
+            padding: 20px;
             border-radius: 15px;
             background: rgba(255,255,255,0.05);
             display: none;
             word-break: break-all;
+            text-align: left;
         }
         .result.show { display: block; }
-        .result .url { color: #ff6b8a; font-size: 14px; margin-bottom: 8px; }
-        .result .uploader { color: #aaa; font-size: 12px; }
+        .result .label { color: #888; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+        .result .value {
+            color: #ff6b8a;
+            font-size: 15px;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin: 4px 0 10px 0;
+            word-break: break-all;
+            border-left: 3px solid #ff6b8a;
+            user-select: all;
+            font-family: monospace;
+        }
+        .result .value.url-value {
+            color: #00ff88;
+            font-size: 14px;
+        }
+        .result .value.uploader-value {
+            color: #ffcc00;
+            font-size: 13px;
+        }
+        .result .value.size-value {
+            color: #66ccff;
+            font-size: 13px;
+        }
         .copy-btn {
             background: rgba(255,255,255,0.1);
             border: 1px solid #ff6b8a;
@@ -87,6 +107,8 @@
             color: white;
             cursor: pointer;
             transition: 0.3s;
+            font-size: 14px;
+            margin-top: 5px;
         }
         .copy-btn:hover { background: rgba(255,100,150,0.2); }
         .loading { display: none; margin-top: 15px; color: #ffb3c6; }
@@ -101,12 +123,23 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-msg {
+            color: #ff4444;
+            font-size: 13px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,0,0,0.1);
+            border-radius: 10px;
+            display: none;
+            text-align: left;
+        }
+        .error-msg.show { display: block; }
         .footer { margin-top: 20px; font-size: 12px; color: #666; }
         .footer span { color: #ff6b8a; }
         .badge {
             display: inline-block;
             background: rgba(255,100,150,0.15);
-            padding: 2px 10px;
+            padding: 2px 12px;
             border-radius: 20px;
             font-size: 10px;
             color: #ff6b8a;
@@ -116,6 +149,7 @@
             .container { padding: 25px 18px; }
             h1 { font-size: 22px; }
             .drop-zone { padding: 25px 15px; }
+            .result .value { font-size: 13px; padding: 8px 10px; }
         }
     </style>
 </head>
@@ -133,19 +167,32 @@
         <div id="fileInfo"></div>
     </div>
 
-    <button class="btn" id="uploadBtn" disabled>Upload</button>
+    <button class="btn" id="uploadBtn" disabled>🚀 Upload</button>
 
     <div class="loading" id="loading">
         <div class="spinner"></div>
         <p style="margin-top:8px;">Uploading...</p>
     </div>
 
+    <div class="error-msg" id="errorMsg"></div>
+
     <div class="result" id="result">
-        <p style="color:#aaa;font-size:13px;">✅ Upload Berhasil!</p>
-        <div class="url" id="resultUrl"></div>
-        <div class="uploader" id="resultUploader"></div>
-        <br />
-        <button class="copy-btn" id="copyBtn">📋 Copy URL</button>
+        <div style="text-align:center;margin-bottom:12px;">
+            <span style="color:#00ff88;font-size:16px;">✅ Upload Berhasil!</span>
+        </div>
+
+        <div class="label">📎 URL</div>
+        <div class="value url-value" id="resultUrl">-</div>
+
+        <div class="label">📌 Uploader</div>
+        <div class="value uploader-value" id="resultUploader">-</div>
+
+        <div class="label">📦 Size</div>
+        <div class="value size-value" id="resultSize">-</div>
+
+        <div style="text-align:center;margin-top:10px;">
+            <button class="copy-btn" id="copyBtn">📋 Copy URL</button>
+        </div>
     </div>
 
     <div class="footer">Made with <span>❤️</span> by <span>RANS</span> untuk <span>TUAN</span></div>
@@ -160,7 +207,9 @@
     const result = document.getElementById('result');
     const resultUrl = document.getElementById('resultUrl');
     const resultUploader = document.getElementById('resultUploader');
+    const resultSize = document.getElementById('resultSize');
     const copyBtn = document.getElementById('copyBtn');
+    const errorMsg = document.getElementById('errorMsg');
 
     let selectedFile = null;
 
@@ -196,10 +245,14 @@
         fileInfo.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         uploadBtn.disabled = false;
         result.classList.remove('show');
+        errorMsg.classList.remove('show');
     }
 
     uploadBtn.addEventListener('click', async () => {
-        if (!selectedFile) return;
+        if (!selectedFile) {
+            alert('Pilih file dulu!');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -207,24 +260,48 @@
         uploadBtn.disabled = true;
         loading.classList.add('show');
         result.classList.remove('show');
+        errorMsg.classList.remove('show');
 
         try {
+            console.log('📤 Uploading file:', selectedFile.name);
+
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
 
             const data = await response.json();
+            console.log('📥 Response:', data);
 
-            if (data.success) {
+            if (data.success && data.url) {
+                // TAMPILIN URL DENGAN FORMAT JELAS
                 resultUrl.textContent = data.url;
-                resultUploader.textContent = `📌 Uploader: ${data.uploader || 'Unknown'} | Size: ${(data.size / 1024).toFixed(1)} KB`;
+                resultUploader.textContent = data.uploader || 'Unknown';
+                
+                // Format size
+                let sizeText = '';
+                if (data.size < 1024) {
+                    sizeText = data.size + ' B';
+                } else if (data.size < 1024 * 1024) {
+                    sizeText = (data.size / 1024).toFixed(1) + ' KB';
+                } else {
+                    sizeText = (data.size / 1024 / 1024).toFixed(2) + ' MB';
+                }
+                resultSize.textContent = sizeText;
+
                 result.classList.add('show');
+                console.log('✅ URL:', data.url);
             } else {
-                alert('Upload gagal: ' + (data.error || 'Unknown error'));
+                errorMsg.textContent = '❌ Upload gagal: ' + (data.error || 'Unknown error');
+                errorMsg.classList.add('show');
+                if (data.results) {
+                    console.log('📊 Results:', data.results);
+                }
             }
         } catch (err) {
-            alert('Error: ' + err.message);
+            console.error('❌ Error:', err);
+            errorMsg.textContent = '❌ Error: ' + err.message;
+            errorMsg.classList.add('show');
         } finally {
             loading.classList.remove('show');
             uploadBtn.disabled = false;
@@ -232,15 +309,31 @@
     });
 
     copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(resultUrl.textContent).then(() => {
-            copyBtn.textContent = '✅ Copied!';
-            setTimeout(() => {
-                copyBtn.textContent = '📋 Copy URL';
-            }, 2000);
-        });
+        const url = resultUrl.textContent;
+        if (url && url !== '-' && url !== '') {
+            navigator.clipboard.writeText(url).then(() => {
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Copy URL';
+                }, 2000);
+            }).catch(() => {
+                // FALLBACK
+                const range = document.createRange();
+                range.selectNode(resultUrl);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Copy URL';
+                }, 2000);
+            });
+        } else {
+            alert('Tidak ada URL untuk di-copy! Upload dulu.');
+        }
     });
 
-    console.log('🔥 TOP4TOP Uploader Loaded!');
+    console.log('🔥 TOP4TOP Uploader!');
     console.log('😈 JANGAN LUPA MAKAN EMPING!');
 </script>
 
