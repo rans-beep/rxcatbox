@@ -1,18 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
-import multer from "multer";
+import formidable from "formidable";
 import fs from "fs";
-
-const upload = multer({ dest: "/tmp" });
-
-function runMiddleware(req, res, fn) {
-    return new Promise((resolve, reject) => {
-        fn(req, res, result => {
-            if (result instanceof Error) return reject(result);
-            resolve(result);
-        });
-    });
-}
 
 export const config = {
     api: {
@@ -22,19 +11,65 @@ export const config = {
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
-        return res.status(405).json({ error: "Method tidak diizinkan" });
+        return res.status(405).json({
+            success: false,
+            error: "Method tidak diizinkan"
+        });
     }
 
     try {
-        await runMiddleware(req, res, upload.single("file"));
+        const form = formidable({
+            uploadDir: "/tmp",
+            keepExtensions: true,
+            multiples: false
+        });
 
-        const form = new FormData();
+        const [fields, files] = await form.parse(req);
 
-        form.append("reqtype", "fileupload");
-        form.append(
+        const file = files.file?.[0] || files.file;
+
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                error: "File tidak ditemukan"
+            });
+        }
+
+        const catboxForm = new FormData();
+
+        catboxForm.append("reqtype", "fileupload");
+        catboxForm.append(
             "fileToUpload",
-            fs.createReadStream(req.file.path)
+            fs.createReadStream(file.filepath),
+            file.originalFilename || "upload"
         );
+
+        const response = await axios.post(
+            "https://catbox.moe/user/api.php",
+            catboxForm,
+            {
+                headers: catboxForm.getHeaders(),
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity
+            }
+        );
+
+        try {
+            fs.unlinkSync(file.filepath);
+        } catch {}
+
+        return res.status(200).json({
+            success: true,
+            url: response.data
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.response?.data || err.message
+        });
+    }
+}        );
 
         const response = await axios.post(
             "https://catbox.moe/user/api.php",
